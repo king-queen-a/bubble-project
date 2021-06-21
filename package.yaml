@@ -1,0 +1,56 @@
+name:                bubble-project
+version:             0.1.0.0
+github:              "githubuser/bubble-project"
+license:             BSD3
+author:              "Kinga Kawczynska"
+maintainer:          "example@example.com"
+copyright:           "2021 Kinga Kawczynska"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/bubble-project#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- gloss
+- containers
+- mtl
+- transformers
+- random
+
+ghc-options:
+- -Wall
+
+library:
+  source-dirs: src
+
+executables:
+  bubble-project-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - bubble-project
+
+tests:
+  bubble-project-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - bubble-project
