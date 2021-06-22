@@ -27,7 +27,7 @@ data Game = Game {    gameBall :: ((Float,Float),Int)
                     , pomoc :: Float
                     , gameLicznik :: Int
                     , gameTable :: [(Float,Float)]
-                    --, gameRandom :: StdGen
+                    , gameRandom :: StdGen
                     }
 
 startGame :: Bool -> [((Float,Float),Int)] -> Game
@@ -42,14 +42,14 @@ startGame start balls = Game {   gameBall = ((6.5,24),2)
                     , gameLicznik = 0
                     , gameTable = if length (activeT balls table1) < length (activeT balls table2) then activeT balls table1
                                 else activeT balls table2
-                    --, gameRandom = mkStdGen 100
+                    , gameRandom = mkStdGen 100
                     }
 
 startingGame :: Bool -> Game -> Game
-startingGame over (Game _ balls _ _ _ _ _ _ _ acT) = Game ((6.5,24),2) balls (not over) 0 NoA 0 False 0 0 acT
+startingGame over (Game _ balls _ _ _ _ _ _ _ acT rand) = Game ((6.5,24),2) balls (not over) 0 NoA 0 False 0 0 acT rand
 
 endGame :: Bool -> Game -> Game
-endGame end (Game ball balls _ score act ang shoot _ _ acT) = Game ball balls end score act ang shoot 0 0 acT
+endGame end (Game ball balls _ score act ang shoot _ _ acT rand) = Game ball balls end score act ang shoot 0 0 acT rand
 
 table1 :: [(Float,Float)]
 table1 = [(x,y) | x <- [1,2,3,4,5,6,7,8,9,10,11,12], y <- [1,3,5,7,9,11,13,15,17,19,21]] 
@@ -66,25 +66,25 @@ activeT balls = filter ( `notElem` nonActiveT balls)
 
 -------------------------------- keyboard -----------------------------
 changeAction :: Action -> Game -> Game
-changeAction LeftA (Game pos balls over score _ ang shoot pom licz at)
-    | ang >= 70 = Game pos balls over score NoA ang shoot pom licz at
-    | otherwise = Game pos balls over score LeftA ang shoot pom licz at
-changeAction RightA (Game pos balls over score _ ang shoot pom licz at)
-    | ang <= -70 = Game pos balls over score NoA ang shoot pom licz at
-    | otherwise = Game pos balls over score RightA ang shoot pom licz at
-changeAction NoA (Game pos balls over score _ ang shoot pom licz at) = Game pos balls over score NoA ang shoot pom licz at
+changeAction LeftA (Game pos balls over score _ ang shoot pom licz at rand)
+    | ang >= 70 = Game pos balls over score NoA ang shoot pom licz at rand
+    | otherwise = Game pos balls over score LeftA ang shoot pom licz at rand
+changeAction RightA (Game pos balls over score _ ang shoot pom licz at rand)
+    | ang <= -70 = Game pos balls over score NoA ang shoot pom licz at rand
+    | otherwise = Game pos balls over score RightA ang shoot pom licz at rand
+changeAction NoA (Game pos balls over score _ ang shoot pom licz at rand) = Game pos balls over score NoA ang shoot pom licz at rand
 
 changeShoot :: Bool -> Game -> Game
-changeShoot shoot (Game ball balls over score act ang _ pom licz at)
-    | shoot = Game ball balls over score NoA ang shoot pom licz at
-    | otherwise = Game ball balls over score act ang shoot pom licz at
+changeShoot shoot (Game ball balls over score act ang _ pom licz at rand)
+    | shoot = Game ball balls over score NoA ang shoot pom licz at rand
+    | otherwise = Game ball balls over score act ang shoot pom licz at rand
 -------------------------------------------------------------------------
 
 moveA :: Float -> Float -> Float
 moveA change angle = angle + change 
 
 angleMove :: Game -> Game
-angleMove (Game ball balls over score act ang shoot pom licz at) = Game ball balls over score act nextAng shoot pom licz at
+angleMove (Game ball balls over score act ang shoot pom licz at rand) = Game ball balls over score act nextAng shoot pom licz at rand
     where 
         nextAng
             | act == LeftA && ang < 60 = moveA 1 ang
@@ -110,14 +110,13 @@ minimalElemIndex :: [Float] -> Int
 minimalElemIndex tab = fst . minimumBy (comparing snd) $ zip [0..] tab
 
 shootMove :: Game -> Game
-shootMove (Game ((x0,y0),c) balls over score act angle shoot pom licz at)
-    | distanceList ((x0,y0),c) balls < 0.9 = Game ((6.5,24),1) nextBalls over (score + nextScore) act angle False 0 (licz+1) nextAT
-    | y<=1 = Game ((6.5,24),1) nextBalls over (score + nextScore) act angle False 0 (licz+1) nextAT
-    | x0<1 = Game ((a1,b1),c) balls over score act angle shoot (pom+1) licz at
-    | x0>12 = Game ((a2,b2),c) balls over score act angle shoot (pom+1) licz at
-    | otherwise = Game ((x,y),c) balls over score act angle shoot pom licz at
+shootMove (Game ((x0,y0),c) balls over score act angle shoot pom licz at rand)
+    | distanceList ((x0,y0),c) balls < 0.9 = Game ((6.5,24),1) nextBalls over (score + nextScore) act angle False 0 (licz+1) nextAT rand
+    | y<=1 = Game ((6.5,24),1) nextBalls over (score + nextScore) act angle False 0 (licz+1) nextAT rand
+    | x0<1 = Game ((a1,b1),c) balls over score act angle shoot (pom+1) licz at rand
+    | x0>12 = Game ((a2,b2),c) balls over score act angle shoot (pom+1) licz at rand
+    | otherwise = Game ((x,y),c) balls over score act angle shoot pom licz at rand
     where
-        --nextBalls = balls ++ [(ballpos,c)]
         nextBalls = changeBalls (ballpos,c) balls
             where ballpos = at !! minimalElemIndex (distanceElemListT ((x0,y0),c) at)
         nextAT
@@ -128,19 +127,20 @@ shootMove (Game ((x0,y0),c) balls over score act angle shoot pom licz at)
                 ballpos = at !! minimalElemIndex (distanceElemListT ((x0,y0),c) at)
                 tableBalls = filterBalls (checkDelateBalls (ballpos,c) (((ballpos,c),True): zip balls (repeat False)))
         nextScore
-            | changeBalls (ballpos, c) balls == (ballpos, c) : balls = 0
-            | otherwise = (-1) + length (filterToScore (checkDelateBalls (ballpos,c) (((ballpos,c),True): zip balls (repeat False))))
+            | l <= 2 = 0
+            | otherwise = (-1) + l
             where
                 ballpos = at !! minimalElemIndex (distanceElemListT ((x0,y0),c) at)
+                l = length (filterToScore (checkDelateBalls (ballpos,c) (((ballpos,c),True): zip balls (repeat False))))
         (a1,b1) = (1,y0-0.2*cos alpha)
         (a2,b2) = (12,y0-0.2*cos alpha)
         (x,y) = (x0-0.2*((-1)**pom)*sin alpha,y0-0.2*cos alpha)
         alpha = angle * pi / 180
 
 move :: Game -> Game
-move (Game ((x0,y0),c) balls over score act angle shoot pom licz at)
-    | shoot = shootMove (Game ((x0,y0),c) balls over score act angle shoot pom licz at)
-    | otherwise = angleMove (Game ((x0,y0),c) balls over score act angle shoot pom licz at)
+move (Game ((x0,y0),c) balls over score act angle shoot pom licz at rand)
+    | shoot = shootMove (Game ((x0,y0),c) balls over score act angle shoot pom licz at rand)
+    | otherwise = angleMove (Game ((x0,y0),c) balls over score act angle shoot pom licz at rand)
 
 neighbourTrue :: Int -> [(((Float,Float),Int),Bool)] -> ((Float,Float),Int) -> (((Float,Float),Int),Bool)
 neighbourTrue c balls ((x,y),col)
@@ -157,16 +157,45 @@ checkDelateBalls ((x,y),c) ballsTrue
 filterBalls :: [(((Float,Float),Int),Bool)] -> [((Float,Float),Int)]
 filterBalls balls = map fst (filter (\x -> snd x == False) balls)
 
+filterBallsBool :: [(((Float,Float),Int),Bool)] -> [(((Float,Float),Int),Bool)]
+filterBallsBool = filter (\x -> snd x == False)
+
 filterToScore :: [(((Float,Float),Int),Bool)] -> [((Float,Float),Int)]
 filterToScore balls = map fst (filter snd balls)
 
 changeBalls :: ((Float,Float),Int) -> [((Float,Float),Int)] -> [((Float,Float),Int)]
-changeBalls ((x,y),c) balls = 
-    if elem ((x-1,y),c) balls || elem ((x+1,y),c) balls || elem ((x-0.5,y+1),c) balls
-        || elem ((x+0.5,y+1),c) balls || elem ((x-0.5,y-1),c) balls || elem ((x+0.5,y-1),c) balls
-        then filterBalls (checkDelateBalls ((x,y),c) ((((x,y),c),True): zip balls (repeat False))) else ((x,y),c) : balls
+changeBalls ((x,y),c) balls = if l > 2 then filterBalls (delateFreeBalls b (noColorBalls b)) else ((x,y),c) : balls
+    where
+        b = filterBalls (checkDelateBalls ((x,y),c) ((((x,y),c),True) : zip balls (repeat False)))
+        l = length (filterToScore (checkDelateBalls ((x,y),c) ((((x,y),c),True) : zip balls (repeat False))))
 
+noColorBall :: ((Float,Float),Int) -> ((Float,Float),Bool)
+noColorBall ((x,y),_)
+    | y == 1 = ((x,y),False)
+    | otherwise = ((x,y),True)
 
+noColorBalls :: [((Float,Float),Int)] -> [((Float,Float),Bool)]
+noColorBalls = map noColorBall
+
+neighbourFalse :: [((Float,Float),Bool)] -> ((Float,Float),Int) -> ((Float,Float),Bool)
+neighbourFalse balls ((x,y),_)
+    | ((x,y),False) `elem` balls = ((x,y),False)
+    | elem ((x-1,y),False) balls || elem ((x+1,y),False) balls || elem ((x-0.5,y+1),False) balls || elem ((x+0.5,y+1),False) balls || elem ((x-0.5,y-1),False) balls || elem ((x+0.5,y-1),False) balls = ((x,y),False)
+    | otherwise = ((x,y),True)
+
+etykateFreeBalls :: [((Float,Float),Int)] -> [((Float,Float),Bool)] -> [((Float,Float),Bool)]
+etykateFreeBalls balls ballsTrue
+    | map (neighbourFalse ballsTrue) balls == ballsTrue = ballsTrue
+    | otherwise = etykateFreeBalls balls (map (neighbourFalse ballsTrue) balls)
+
+changeForm :: ((Float,Float),Int) -> ((Float,Float),Bool) -> (((Float,Float),Int),Bool)
+changeForm ball (_,b) = (ball,b)
+
+changeForms :: [((Float,Float),Int)] -> [((Float,Float),Bool)] -> [(((Float,Float),Int),Bool)]
+changeForms balls ballsFalse = zipWith changeForm balls ballsFalse
+
+delateFreeBalls :: [((Float,Float),Int)] -> [((Float,Float),Bool)] -> [(((Float,Float),Int),Bool)]
+delateFreeBalls balls ballsFalse = changeForms balls (etykateFreeBalls balls ballsFalse)
 
 przyk1 :: [(((Float,Float),Int),Bool)]
 przyk1 = [(((1,1),1),True),(((2,1),1),False),(((3,1),2),False),(((4,1),3),False),(((1.5,2),1),False),(((2.5,2),2),False),(((3.5,2),2),False)]
@@ -225,7 +254,8 @@ graphicsGame game = return ( pictures $ scoreGraphics ++ overGraphics
                                         , fillRectangle black (13, 12.5) (20, 500) ]
 
 step :: Float -> Game -> IO Game 
-step _ game = if gameOver game then return game else print (length balls, length activ, (length balls) + (length activ)) >> return (Game ((x,y),c) balls over score action angle shoot pom licz activ)
+step _ game = if gameOver game then return game else -- print (length balls, length activ, (length balls) + (length activ)) >> 
+    return (Game ((x,y),c) balls over score action angle shoot pom licz activ rand)
     where
         --((x,y),c) = gameBall game
         --((x,y),c) = if shoot then gameBall (shootMove game) else gameBall (angleMove game)
@@ -236,8 +266,9 @@ step _ game = if gameOver game then return game else print (length balls, length
         --shoot = gameShoot game
         --Game ((x,y),c) _ _ _ _ angle shoot pom = if shoot then fst $ shootMove (game,0) else angleMove game
         --Game ((x,y),c) _ _ _ _ _ shoot = if shoot then shootMove game else game
-        Game ((x,y),c) balls _ score _ angle shoot pom licz activ = move game
+        Game ((x,y),c) balls _ score _ angle shoot pom licz activ rand = move game
         --pom = pomoc $ shootMove game
+        --rand = gameRandom game
         
 
 
