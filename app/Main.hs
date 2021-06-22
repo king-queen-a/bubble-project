@@ -84,11 +84,17 @@ moveA :: Float -> Float -> Float
 moveA change angle = angle + change 
 
 angleMove :: Game -> Game
-angleMove (Game ball balls over score act ang shoot pom licz at rand) = Game ball balls over score act nextAng shoot pom licz at rand
-    where 
+angleMove (Game ball balls over score act ang shoot pom licz at rand) = Game ball nextBalls over score act nextAng shoot pom nextLicz nextAT rand
+    where
+        nextLicz = if rem licz 6 == 5 && not shoot then licz+1 else licz
+        nextBalls = if rem licz 6 == 5 && not shoot then addBallsRow balls rand else balls
+        nextAT
+            | rem licz 6 /= 5 = at
+            | length (activeT nextBalls table1) < length (activeT nextBalls table2) = activeT nextBalls table1
+            | otherwise = activeT nextBalls table2
         nextAng
-            | act == LeftA && ang < 60 = moveA 1 ang
-            | act == RightA && ang > (-60) = moveA (-1) ang
+            | act == LeftA && ang < 70 = moveA 0.5 ang
+            | act == RightA && ang > (-70) = moveA (-0.5) ang
             | otherwise = ang
 
 distance :: ((Float, Float),Int) -> ((Float, Float),Int) -> Float
@@ -111,12 +117,14 @@ minimalElemIndex tab = fst . minimumBy (comparing snd) $ zip [0..] tab
 
 shootMove :: Game -> Game
 shootMove (Game ((x0,y0),c) balls over score act angle shoot pom licz at rand)
-    | distanceList ((x0,y0),c) balls < 0.9 = Game ((6.5,24),1) nextBalls over (score + nextScore) act angle False 0 (licz+1) nextAT rand
-    | y<=1 = Game ((6.5,24),1) nextBalls over (score + nextScore) act angle False 0 (licz+1) nextAT rand
+    | distanceList ((x0,y0),c) balls < 0.9 = Game ((6.5,24),col) nextBalls nextOver (score + nextScore) act angle False 0 (licz+1) nextAT nextRand
+    | y<=1 = Game ((6.5,24),col) nextBalls over (score + nextScore) act angle False 0 (licz+1) nextAT nextRand
     | x0<1 = Game ((a1,b1),c) balls over score act angle shoot (pom+1) licz at rand
     | x0>12 = Game ((a2,b2),c) balls over score act angle shoot (pom+1) licz at rand
     | otherwise = Game ((x,y),c) balls over score act angle shoot pom licz at rand
     where
+        nextOver = ourGameOver nextBalls
+        (col,nextRand) = colorBall rand
         nextBalls = changeBalls (ballpos,c) balls
             where ballpos = at !! minimalElemIndex (distanceElemListT ((x0,y0),c) at)
         nextAT
@@ -128,10 +136,11 @@ shootMove (Game ((x0,y0),c) balls over score act angle shoot pom licz at rand)
                 tableBalls = filterBalls (checkDelateBalls (ballpos,c) (((ballpos,c),True): zip balls (repeat False)))
         nextScore
             | l <= 2 = 0
-            | otherwise = (-1) + l
+            | otherwise = (-1) + l + length (filterToScore (delateFreeBalls b (noColorBalls b)))
             where
                 ballpos = at !! minimalElemIndex (distanceElemListT ((x0,y0),c) at)
                 l = length (filterToScore (checkDelateBalls (ballpos,c) (((ballpos,c),True): zip balls (repeat False))))
+                b = filterBalls (checkDelateBalls (ballpos,c) (((ballpos,c),True) : zip balls (repeat False)))
         (a1,b1) = (1,y0-0.2*cos alpha)
         (a2,b2) = (12,y0-0.2*cos alpha)
         (x,y) = (x0-0.2*((-1)**pom)*sin alpha,y0-0.2*cos alpha)
@@ -155,10 +164,7 @@ checkDelateBalls ((x,y),c) ballsTrue
     | otherwise = checkDelateBalls ((x,y),c) (map (neighbourTrue c ballsTrue) (map fst ballsTrue))
 
 filterBalls :: [(((Float,Float),Int),Bool)] -> [((Float,Float),Int)]
-filterBalls balls = map fst (filter (\x -> snd x == False) balls)
-
-filterBallsBool :: [(((Float,Float),Int),Bool)] -> [(((Float,Float),Int),Bool)]
-filterBallsBool = filter (\x -> snd x == False)
+filterBalls balls = map fst (filter (not . snd) balls)
 
 filterToScore :: [(((Float,Float),Int),Bool)] -> [((Float,Float),Int)]
 filterToScore balls = map fst (filter snd balls)
@@ -192,10 +198,32 @@ changeForm :: ((Float,Float),Int) -> ((Float,Float),Bool) -> (((Float,Float),Int
 changeForm ball (_,b) = (ball,b)
 
 changeForms :: [((Float,Float),Int)] -> [((Float,Float),Bool)] -> [(((Float,Float),Int),Bool)]
-changeForms balls ballsFalse = zipWith changeForm balls ballsFalse
+changeForms = zipWith changeForm
 
 delateFreeBalls :: [((Float,Float),Int)] -> [((Float,Float),Bool)] -> [(((Float,Float),Int),Bool)]
 delateFreeBalls balls ballsFalse = changeForms balls (etykateFreeBalls balls ballsFalse)
+
+colorBall :: StdGen -> (Int,StdGen)
+colorBall = randomR (1,7)
+
+ourGameOver :: [((Float,Float),Int)] -> Bool
+ourGameOver balls
+    | 22 `elem` map (snd . fst) balls = True
+    | otherwise = False
+
+colorBalls :: StdGen -> [Int]
+colorBalls = take 12 . unfoldr (Just . randomR (1, 7))
+
+translateBall :: ((Float,Float),Int) -> ((Float,Float),Int)
+translateBall ((x,y),c) = ((x,y+1),c)
+
+translateBalls :: [((Float,Float),Int)] -> [((Float,Float),Int)]
+translateBalls = map translateBall
+
+addBallsRow :: [((Float,Float),Int)] -> StdGen -> [((Float,Float),Int)]
+addBallsRow balls rand
+    | length (activeT (translateBalls balls) table1) < length (activeT (translateBalls balls) table2) = zip (filter (\x -> snd x == 1) table1) (colorBalls rand) ++ translateBalls balls
+    | otherwise = zip (filter (\x -> snd x == 1) table2) (colorBalls rand) ++ translateBalls balls
 
 przyk1 :: [(((Float,Float),Int),Bool)]
 przyk1 = [(((1,1),1),True),(((2,1),1),False),(((3,1),2),False),(((4,1),3),False),(((1.5,2),1),False),(((2.5,2),2),False),(((3.5,2),2),False)]
@@ -210,26 +238,29 @@ gameWindow :: Display      --gameWindow = InWindow "Bubble" (260,500) (100, 100)
 gameWindow = InWindow "Bubble" (310,610) (100, 100)
 
 keys :: Event -> Game -> IO Game
-keys (EventKey (SpecialKey KeyLeft) G.Down _ _) game = return (changeAction LeftA game)
-keys (EventKey (SpecialKey KeyRight) G.Down _ _) game = return (changeAction RightA game)
-keys (EventKey (SpecialKey KeyDown) G.Down _ _) game = return (changeAction NoA game)
+keys (EventKey (SpecialKey KeyLeft) G.Down _ _) game = if not $ gameShoot game then return (changeAction LeftA game) else return game
+keys (EventKey (SpecialKey KeyRight) G.Down _ _) game = if not $ gameShoot game then return (changeAction RightA game) else return game
+keys (EventKey (SpecialKey KeyDown) G.Down _ _) game = if not $ gameShoot game then return (changeAction NoA game) else return game
 keys (EventKey (SpecialKey KeyUp) G.Down _ _) game = if not $ gameShoot game && not (gameOver game) 
-                        then return (changeShoot True game) else return (changeShoot False game)
+                        then return (changeShoot True game) else return game
 keys (EventKey (SpecialKey KeyEnter) G.Down _ _) game = if gameOver game then return (startingGame True game) else return game
 keys (EventKey (SpecialKey KeyEsc) G.Down _ _) game = if gameOver game then return game else return (endGame True game)
 keys _ game = return game
 
 graphicsGame :: Game -> IO Picture
-graphicsGame game = return ( pictures $ scoreGraphics ++ overGraphics
+graphicsGame game = return ( pictures $ scoreGraphics 
                             ++ fmap bubbleGraphics balls
                             ++ [bubbleGraphics (gameBall game)]
                             ++ scoreTextGraphics
                             ++ [gameLine (gameAngle game)]
+                            ++ [gameOverLine]
+                            ++ overGraphics
                             )
     where
         gameLine alpha = color black $ scale 1 (-1) $ line [(6.5*20-130,24*20-250),((6.5-2*sin x)*20-130,(24-2*cos x)*20-250)]
             where
                 x = alpha * pi / 180
+        gameOverLine = color red $ scale 1 (-1) $ line [(0.5*20-130,21.5*20-250),(12.5*20-130,21.5*20-250)]
         fillRectangle color' (tx, ty) (w, h) =  color color' $ 
                                                     scale 1 (-1) $ 
                                                     translate (tx * 20 - 130) (ty * 20 - 250) $ 
@@ -244,10 +275,10 @@ graphicsGame game = return ( pictures $ scoreGraphics ++ overGraphics
             | col == 5 = color rose $ scale 1 (-1) $ translate (x*20 - 130) (y*20 - 250) $ circleSolid 9
             | col == 6 = color orange $ scale 1 (-1) $ translate (x*20 - 130) (y*20 - 250) $ circleSolid 9
             | otherwise = color cyan  $ scale 1 (-1) $ translate (x*20 - 130) (y*20 - 250) $ circleSolid 9
-        scoreGraphics = [color red $ translate 110 (-290) $ scale 0.25 0.25 $ text (show (gameScore game))]
-        scoreTextGraphics = [color blue $ translate 70 (-285) $ scale 0.1 0.1 $ text "Score: "]
-        overGraphics = if gameOver game then [color red $ translate (-200) 0 $ scale 0.25 0.25 $ text "Koniec gry :("
-                                     ,  color green $ translate (-175) (-50) $ scale 0.1 0.1 $ text "Press Enter to start" ] 
+        scoreGraphics = [color red $ translate 100 (-290) $ scale 0.25 0.25 $ text (show (gameScore game))]
+        scoreTextGraphics = [color blue $ translate 55 (-285) $ scale 0.1 0.1 $ text "Score: "]
+        overGraphics = if gameOver game then [color red $ translate (-120) 0 $ scale 0.25 0.25 $ text "Koniec gry :("
+                                     ,  color black $ translate (-100) (-50) $ scale 0.15 0.15 $ text "Press Enter to start" ] 
                                     else [ fillRectangle black (6.5, 0) (260, 20)
                                         , fillRectangle black (6.5, 25) (260, 20)
                                         , fillRectangle black (0, 12.5) (20, 500)
@@ -260,7 +291,7 @@ step _ game = if gameOver game then return game else -- print (length balls, len
         --((x,y),c) = gameBall game
         --((x,y),c) = if shoot then gameBall (shootMove game) else gameBall (angleMove game)
         --balls = gameBalls game
-        over = gameOver game
+        over = ourGameOver balls
         --score = gameScore game
         action = gameAction game
         --shoot = gameShoot game
@@ -270,6 +301,13 @@ step _ game = if gameOver game then return game else -- print (length balls, len
         --pom = pomoc $ shootMove game
         --rand = gameRandom game
         
+
+fileDefault :: IO [((Float, Float), Int)]
+fileDefault = do
+    bx <- readFile "bubblex.txt"
+    by <- readFile "bubbley.txt"
+    bc <- readFile "bubblec.txt"
+    return (zip (zip (map f2 . words $ bx) (map f2 . words $ by)) (map f1 . words $ bc))
 
 
 f1 :: String -> Int
@@ -283,4 +321,4 @@ main = do
     by <- readFile "bubbley.txt"
     bc <- readFile "bubblec.txt"
     let a = zip (zip (map f2 . words $ bx) (map f2 . words $ by)) (map f1 . words $ bc)
-    playIO gameWindow gameBackground 25 (startGame False a) graphicsGame keys step
+    playIO gameWindow gameBackground 35 (startGame False a) graphicsGame keys step
