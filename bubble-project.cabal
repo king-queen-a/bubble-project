@@ -7,10 +7,10 @@ cabal-version: 1.12
 name:           bubble-project
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/bubble-project#readme>
-homepage:       https://github.com/githubuser/bubble-project#readme
-bug-reports:    https://github.com/githubuser/bubble-project/issues
+homepage:       https://github.com/king-queen-a/bubble-project#readme
+bug-reports:    https://github.com/king-queen-a/bubble-project/issues
 author:         Kinga Kawczynska
-maintainer:     example@example.com
+maintainer:     krawczynskak@student.mini.pw.edu.pl
 copyright:      2021 Kinga Kawczynska
 license:        BSD3
 license-file:   LICENSE
@@ -21,10 +21,11 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/bubble-project
+  location: https://github.com/king-queen-a/bubble-project
 
 library
   exposed-modules:
+      Gui
       Lib
   other-modules:
       Paths_bubble_project
@@ -61,12 +62,14 @@ test-suite bubble-project-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Test.Lib
       Paths_bubble_project
   hs-source-dirs:
       test
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , base >=4.7 && <5
     , bubble-project
     , containers
     , gloss

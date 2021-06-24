@@ -1,9 +1,9 @@
 name:                bubble-project
 version:             0.1.0.0
-github:              "githubuser/bubble-project"
+github:              "king-queen-a/bubble-project"
 license:             BSD3
 author:              "Kinga Kawczynska"
-maintainer:          "example@example.com"
+maintainer:          "krawczynskak@student.mini.pw.edu.pl"
 copyright:           "2021 Kinga Kawczynska"
 
 extra-source-files:
@@ -54,3 +54,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - bubble-project
+    - QuickCheck
