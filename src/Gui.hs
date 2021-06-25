@@ -82,9 +82,9 @@ cutString n m l = take n l ++ cutString n m (drop (n+m) l)
 step :: Float -> Game -> IO Game
 step _ game = do
     writeFile "record.txt" (show $ gameRecord game)
-    writeFile "bx.txt" $ cutString (lx-1) 2 (unlines $ convLFloatToLString (map (fst . fst) (gameBalls game))) 
-    writeFile "by.txt" $ cutString (ly-1) 2 (unlines $ convLFloatToLString (map (snd . fst) (gameBalls game)))
-    writeFile "bc.txt" $ cutString (lc-1) 2 (unlines $ convLIntToLString (map snd (gameBalls game))) 
+    writeFile "bx.txt" $ cutString (lx-1) 1 (unlines $ convLFloatToLString (map (fst . fst) (gameBalls game))) 
+    writeFile "by.txt" $ cutString (ly-1) 1 (unlines $ convLFloatToLString (map (snd . fst) (gameBalls game)))
+    writeFile "bc.txt" $ cutString (lc-1) 1 (unlines $ convLIntToLString (map snd (gameBalls game))) 
     if gameOver game then return game else
         return (Game ((x,y),c) balls over score action angle shoot pom licz activ rand re def)
     where

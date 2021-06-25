@@ -1,7 +1,7 @@
 import qualified Test.Lib as Lib
+import qualified Test.Gui as Gui
 
 main :: IO ()
-main = Lib.test
+main = Lib.test >> Gui.test
 
---main = Stream.test >> Tape.test
 --main = putStrLn "Test suite not yet implemented"

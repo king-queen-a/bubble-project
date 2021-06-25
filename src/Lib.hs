@@ -92,8 +92,8 @@ moveA change angle = angle + change
 angleMove :: Game -> Game
 angleMove (Game ball balls over score act ang shoot pom licz at rand re def) = Game ball nextBalls over score act nextAng shoot pom nextLicz nextAT rand re def
     where
-        nextLicz = if rem licz 6 == 5 && not shoot then licz+1 else licz
-        nextBalls = if rem licz 6 == 5 && not shoot then addBallsRow balls rand else balls
+        nextLicz = if rem licz 6 == 5 then licz+1 else licz
+        nextBalls = if rem licz 6 == 5 then addBallsRow balls rand else balls
         nextAT
             | rem licz 6 /= 5 = at
             | length (activeT nextBalls table1) < length (activeT nextBalls table2) = activeT nextBalls table1
